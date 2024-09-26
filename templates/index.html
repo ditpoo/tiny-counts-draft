@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Counter App</title>
+<style>
+body { font-family: Roboto, sans-serif; margin: 20px; }
+h2 { color: #333; font-size: 24px; margin-bottom: 15px; }
+h3 { color: #555; font-size: 18px; margin-bottom: 10px; }
+
+.top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.top-section button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.card {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.counter-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.counter-metrics div {
+    text-align: left;
+}
+.counter-metrics strong { font-size: 20px; color: #333; }
+.counter-metrics span { color: #777; } 
+
+.chart-area { 
+    height: 200px;
+    border: 1px solid #ddd; 
+    margin-bottom: 20px;
+}
+
+.optimization, .day-hour {
+    border: 1px solid #ddd; 
+    padding: 20px; 
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #f2f2f2;
+}
+
+a {
+    color: #4CAF50;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+.selected {
+    border: 4px solid #4CAF50;
+}
+</style>
+
+<script>
+var websocket = new WebSocket("ws://localhost:8080/ws");
+var selectedKey = null;
+
+websocket.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    for (var key in data) {
+        var counterValueElement = document.getElementById("counterValue-" + key);
+        if (counterValueElement) {
+            counterValueElement.textContent = data[key];
+        }
+    }
+};
+
+function incrementCounter() {
+    var keyInput = document.getElementById("key");
+    var countInput = document.getElementById("count");
+
+    var key = keyInput.value || "default"; 
+    var count = parseInt(countInput.value, 10) || 1; 
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/increment", true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.onreadystatechange = function() {
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+        }
+    };
+    xhr.send("key=" + encodeURIComponent(key) + "&count=" + encodeURIComponent(count));
+
+    keyInput.value = "";
+    countInput.value = "";
+}
+
+function showForm() {
+    var formContainer = document.getElementById("newCounterFormContainer");
+    if (formContainer.style.display === "none" || formContainer.style.display === "") {
+        formContainer.style.display = "block";
+    } else {
+        formContainer.style.display = "none";
+    }
+}
+
+function selectMetric(key) {
+    if (selectedKey) {
+        var prevSelected = document.getElementById("counterValue-" + selectedKey).parentElement;
+        var cardElement = prevSelected.closest('.card'); 
+        cardElement.classList.remove("selected");
+    }
+
+    selectedKey = key;
+    var selectedElement = document.getElementById("counterValue-" + key).parentElement;
+    var cardElement = selectedElement.closest('.card'); 
+
+    if (cardElement) {
+        cardElement.classList.add("selected");
+        cardElement.style.backgroundColor = '#f0f0f5';
+    }
+}
+
+function showAggregateForm() {
+    var aggregateFormContainer = document.getElementById("aggregateFormContainer");
+    if (aggregateFormContainer.style.display === "none" || aggregateFormContainer.style.display === "") {
+        aggregateFormContainer.style.display = "block";
+    } else {
+        aggregateFormContainer.style.display = "none";
+    }
+}
+
+</script>
+</head>
+<body>
+<div class="top-section">
+    <h2>{{.Message}}</h2>
+    <button onclick="showForm()"> + New Counter</button> 
+</div>
+
+<div id="newCounterFormContainer" style="display:none;">
+    <form onsubmit="incrementCounter(); return false;" class="card">
+        <label for="key">Counter Key (optional):</label><br>
+        <input type="text" id="key" name="key"><br><br>
+        <label for="count">Count:</label><br>
+        <input type="number" id="count" name="count" value="1"><br><br>
+        <input type="submit" value="Increment">
+    </form>
+</div>
+
+{{ range $key, $value := .Counters }}
+<div class="card">
+    <div class="counter-metrics" onclick="selectMetric('{{ $key }}')"> 
+        <div><strong><br><span>{{ $key }}</span></strong>
+        <span id="counterValue-{{ $key }}">{{ $value }}</span></div>
+    </div>
+</div>
+{{ end }}
+
+<h3>Current Counts:</h3>
+<div id="counters"></div>
+
+<a href="javascript:void(0)" onclick="showAggregateForm()">Aggregate Counts</a>
+
+<div id="aggregateFormContainer" style="display:none;">
+    <h2>Aggregate Counts</h2>
+    <form action="/aggregate" method="get">
+        <label for="key">Counter Key:</label><br>
+        <input type="text" id="key" name="key" required><br><br>
+        <label for="start">Start Time:</label><br>
+        <input type="datetime-local" id="start" name="start" required><br><br>
+        <label for="end">End Time:</label><br>
+        <input type="datetime-local" id="end" name="end" required><br><br>
+        <input type="submit" value="Aggregate">
+    </form>
+
+    <div id="result">
+        {{if .Total}}
+            <h3>Total Count for "{{.Key}}": {{.Total}}</h3>
+        {{else}}
+            <p>No counts found for the given key and time range.</p>
+        {{end}}
+    </div>
+
+    <br>
+
+    <a href="/">Back to Home</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aggregate Counts</title>
+</head>
+<body>
+    <h2>Aggregate Counts</h2>
+
+    <form action="/aggregate" method="get">
+        <label for="key">Counter Key:</label><br>
+        <input type="text" id="key" name="key" required><br><br>
+        <label for="start">Start Time:</label><br>
+        <input type="datetime-local" id="start" name="start" required><br><br>
+        <label for="end">End Time:</label><br>
+        <input type="datetime-local" id="end" name="end" required><br><br>
+        <input type="submit" value="Aggregate">
+    </form>
+
+    <div id="result">
+        {{if .Total}}
+            <h3>Total Count for "{{.Key}}": {{.Total}}</h3>
+        {{else}}
+            <p>No counts found for the given key and time range.</p>
+        {{end}}
+    </div>
+
+    <br>
+
+    <a href="/">Back to Home</a>
+</body>
+</html>
