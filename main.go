@@ -124,7 +124,6 @@ func wsEndpoint(sharedData *handlers.SharedData) http.HandlerFunc {
 				allTotals[record.Key] += record.Count
 			}
 
-			// Send the updated total counts to the client
 			sharedData.Mutex.Lock()
 			for client := range sharedData.WebsocketConnections {
 				err := client.WriteJSON(allTotals)

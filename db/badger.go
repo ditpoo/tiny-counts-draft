@@ -30,10 +30,7 @@ func (b *BadgerDB) Close() error {
 func (b *BadgerDB) IncrementCounter(key string, count int64) error {
 	record := &models.Record{}
 	err := b.Store.Get(key, record)
-	if err != nil {
-		return err
-	}
-	if record.Key == key {
+	if err == nil {
 		record.Count += count
 		return b.Store.Update(key, record)
 	}
