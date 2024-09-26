@@ -1,10 +1,10 @@
 package main
 
 import (
-	"strconv"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 
 	"net/url"
 	"sync"
